@@ -46,4 +46,4 @@ source /home/axeninja2/irc/axeircbot/axeircbot.tcl
 ```
 * Configure the updatetwitter helper script in ./helpers/ folder by copying updatetwitter.config.inc.php.sample to updatetwitter.config.inc.php and setting up the values as needed.
 
-_Based on Dash Ninja by Alexandre (aka elbereth) Devilliers
+_Based on Dash Ninja by Alexandre (aka elbereth) Devilliers_
