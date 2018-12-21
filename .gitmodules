@@ -1,0 +1,3 @@
+[submodule "helpers/tweet-php"]
+	path = helpers/tweet-php
+	url = https://github.com/jnicol/tweet-php.git

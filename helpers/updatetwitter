@@ -1,0 +1,83 @@
+#!/usr/bin/php
+<?php
+require_once('tweet-php/TweetPHP.php');
+require_once('updatetwitter.config.inc.php');
+
+DEFINE('VERSION','1.0.4');
+
+function xecho($line) {
+  echo date('Y-m-d H:i:s').' - '.$line;
+}
+
+xecho('updatetwitter v'.VERSION."\n");
+xecho("Connecting to MySQL: ");
+
+$mysqli = new mysqli(DMNIRCMYSQLHOST, DMNIRCMYSQLUSER, DMNIRCMYSQLPASS, DMNIRCMYSQLDATABASE);
+if ($mysqli->connect_errno) {
+  echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;
+  die();
+}
+echo "OK\n";
+
+function get_tweets($screenname) {
+
+$TweetPHP = new TweetPHP(array(
+      'consumer_key'              => DMNIRC_TWITTER_CONSUMER_KEY,
+      'consumer_secret'           => DMNIRC_TWITTER_CONSUMER_SECRET,
+      'access_token'              => DMNIRC_TWITTER_ACCESS_TOKEN,
+      'access_token_secret'       => DMNIRC_TWITTER_ACCESS_TOKEN_SECRET,
+      'twitter_screen_name'       => $screenname,
+      'date_format'               => '%Y-%m-%d %H:%i:%s',
+      'cache_file'                => dirname(__FILE__) . '/cache/twitter_'.$screenname.'.txt',
+      'cache_file_raw'            => dirname(__FILE__) . '/cache/twitter_'.$screenname.'-array.txt',
+      'cachetime'                 => 300,
+      'tweets_to_display'         => 5,
+      'format'                    => 'array'
+    ));
+
+$tweetlist = $TweetPHP->get_tweet_array();
+
+return $tweetlist;
+
+}
+
+$screenname = DMNIRC_TWITTER_SCREENNAME;
+
+xecho('Retrieving latest known tweet: ');
+$query = "SELECT MAX(id) FROM cmd_twitter WHERE account = '".$mysqli->real_escape_string($screenname)."' LIMIT 1";
+if ($result = $mysqli->query($query)) {
+  $row = $result->fetch_array();
+  $maxtweet = $row[0];
+  echo "OK ($maxtweet)\n";
+}
+else {
+  $maxtweet = 0;
+  echo "Not found\n";
+}
+
+xecho('Retrieving tweets from Twitter: ');
+$axecrypto = get_tweets($screenname);
+echo "OK (".count($axecrypto)." tweets retrieved)\n";
+xecho("Checking for new ones: ");
+$query = "INSERT INTO cmd_twitter (`account`, `id`, `created_at`, `text`) VALUES %s";
+$sql = array();
+foreach ($axecrypto as $tweet) {
+  if ($tweet['id'] > $maxtweet) {
+    $cdate = new DateTime($tweet['created_at']);
+    $sql[] = sprintf("('%s',%d,'%s','%s')",$mysqli->real_escape_string($screenname),$tweet['id'],gmdate('Y-m-d H:i:s',$cdate->gettimestamp()),$mysqli->real_escape_string($tweet['text']));
+  }
+}
+echo "Done (".count($sql)." new tweets)\n";
+if (count($sql) > 0) {
+  xecho('Submitting to MySQL: ');
+  $query = sprintf($query,implode(',',$sql));
+  if ($mysqli->query($query)) {
+    echo "OK\n";
+  }
+  else {
+    echo "Failed (" . $mysqli->errno . ") " . $mysqli->error."\n";
+  }
+}
+$mysqli->close();
+
+?>
