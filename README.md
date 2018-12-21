@@ -15,7 +15,7 @@ It contains:
 * Go to the root of your eggdrop bot user (ex: cd /home/axeninja2/irc/)
 * Get latest code from github:
 ```shell
-git clone https://github.com/elbereth/axeninja-irc.git
+git clone https://github.com/axerunners/axeninja-irc.git
 ```
 * Add the following lines to your eggdrop.conf (or whatever main eggdrop conf file you use for your bot):
 ```
